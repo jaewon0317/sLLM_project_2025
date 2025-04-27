@@ -1,17 +1,17 @@
 // --- DOM 요소 가져오기 ---
-const promptInput = document.getElementById('prompt-input'); //
-const sendButton = document.getElementById('send-button'); //
-const chatLog = document.getElementById('chat-log'); //
-const chatLogContainer = document.getElementById('chat-log-container'); //
-const loadingIndicator = document.getElementById('loading-indicator'); //
-const themeToggleButton = document.getElementById('theme-toggle-button'); //
-const bodyElement = document.body; //
+const promptInput = document.getElementById('prompt-input');
+const sendButton = document.getElementById('send-button');
+const chatLog = document.getElementById('chat-log');
+const chatLogContainer = document.getElementById('chat-log-container');
+const loadingIndicator = document.getElementById('loading-indicator');
+const themeToggleButton = document.getElementById('theme-toggle-button');
+const bodyElement = document.body;
 
-// --- 테마 관리---
-const lightIcon = '☀️'; //
-const darkIcon = '🌙'; //
+// --- 테마 관리 ---
+const lightIcon = '☀️';
+const darkIcon = '🌙';
 
-// 테마 설정 함수
+// 테마 설정 함수 (CSS 클래스 이름 'dark-mode' 사용)
 function setTheme(theme) {
     if (theme === 'dark') {
         bodyElement.classList.add('dark-mode'); // 'dark-mode' 클래스 추가
@@ -43,7 +43,7 @@ function initializeTheme() {
 if (themeToggleButton && bodyElement) { // themeToggleButton, bodyElement null 체크
     themeToggleButton.addEventListener('click', () => {
         // 현재 body에 'dark-mode' 클래스가 있는지 확인
-        if (bodyElement.classList.contains('dark-mode')) { //
+        if (bodyElement.classList.contains('dark-mode')) {
             setTheme('light'); // 있으면 라이트 모드로
         } else {
             setTheme('dark'); // 없으면 다크 모드로
@@ -54,8 +54,8 @@ if (themeToggleButton && bodyElement) { // themeToggleButton, bodyElement null �
 }
 
 
-// --- 메시지 추가 및 스크롤 함수 ---
-function appendMessage(role, content) {
+// --- 메시지 추가 및 스크롤 함수 (시간 표시 기능 추가) ---
+function appendMessage(role, content, duration = null) { // duration 파라미터 추가
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', `${role}-message`); // 공통 클래스 및 역할별 클래스
 
@@ -67,10 +67,37 @@ function appendMessage(role, content) {
             console.error("Markdown/DOMPurify 라이브러리가 로드되지 않았습니다."); //
             messageDiv.innerHTML = '<p style="color: orange;">오류: 렌더링 라이브러리 로딩 실패</p>'; //
         } else {
-            const rawHtml = marked.parse(content); //
-            const sanitizedHtml = DOMPurify.sanitize(rawHtml); //
-            messageDiv.innerHTML = sanitizedHtml; //
+            try { // 마크다운 렌더링 오류 방지
+                const rawHtml = marked.parse(content); //
+                const sanitizedHtml = DOMPurify.sanitize(rawHtml); //
+                messageDiv.innerHTML = sanitizedHtml; //
+            } catch (error) {
+                console.error("Markdown parsing/sanitizing error:", error);
+                // 오류 발생 시 원본 텍스트라도 표시
+                messageDiv.textContent = content;
+                messageDiv.innerHTML += '<p style="color: orange;"> (마크다운 렌더링 오류)</p>';
+            }
         }
+
+        // --- 소요 시간 표시 추가 ---
+        if (duration !== null && duration !== undefined) {
+            const durationSpan = document.createElement('span');
+            durationSpan.classList.add('response-duration'); // 스타일링 위한 클래스 추가
+            durationSpan.textContent = ` (${duration}초)`;
+
+            // 생성된 span을 메시지 div 내부의 적절한 위치에 추가
+            // 예: 마지막 문단(<p>) 뒤에 추가 (내용이 없거나 p가 아닐 수도 있으므로 확인)
+            const lastChild = messageDiv.lastElementChild;
+            if (lastChild && lastChild.tagName === 'P') {
+                 // 마지막 p 태그 내용 뒤에 이어서 표시 (innerHTML 사용 주의)
+                 lastChild.innerHTML += ` <span class="response-duration">(${duration}초)</span>`;
+            } else {
+                 // 적절한 위치 못 찾으면 그냥 div 끝에 추가
+                 messageDiv.appendChild(durationSpan);
+            }
+        }
+        // --- 소요 시간 표시 끝 ---
+
     } else if (role === 'error') {
         // 오류 메시지 스타일링 (textContent 사용 권장)
         messageDiv.textContent = content; //
@@ -95,9 +122,9 @@ function scrollToBottom() {
 }
 
 
-// --- 텍스트 생성 로직 ---
-if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chatLogContainer 추가 확인
-    sendButton.addEventListener('click', () => { // async 제거 가능 ($.ajax는 콜백/프로미스 기반)
+// --- 텍스트 생성 로직 (시간 표시 연동) ---
+if (sendButton && chatLog && promptInput && chatLogContainer) { //
+    sendButton.addEventListener('click', () => { //
         const prompt = promptInput.value.trim(); //
         if (!prompt) {
             alert('질문을 입력해주세요.'); //
@@ -107,7 +134,6 @@ if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chat
         // 1. 사용자 메시지를 채팅 로그에 바로 표시
         appendMessage('user', prompt); //
         promptInput.value = ''; // 입력창 비우기
-        // promptInput.style.height = 'auto'; // 높이 초기화 (선택적)
 
         // 로딩 시작
         loadingIndicator.style.display = 'flex'; //
@@ -115,7 +141,7 @@ if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chat
         promptInput.disabled = true; //
         scrollToBottom(); // 로딩 표시 후 스크롤
 
-        //$.ajax
+        // --- $.ajax 사용 (시간 표시 연동) ---
         $.ajax({ //
             url: '/generate', //
             type: 'POST', //
@@ -124,8 +150,9 @@ if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chat
             dataType: 'json' //
         })
         .done(function(data) {
-            // 2. 모델 응답을 채팅 로그에 추가
-            appendMessage('assistant', data.response); //
+            // 2. 모델 응답과 시간을 채팅 로그에 추가
+            // data.duration 값이 있는지 확인 후 전달
+            appendMessage('assistant', data.response, data.duration); // 수정: data.duration 전달
         })
         .fail(function(jqXHR, textStatus, errorThrown) { //
             console.error('AJAX Error:', textStatus, errorThrown, jqXHR.responseText); //
@@ -137,7 +164,7 @@ if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chat
                  if(jqXHR.responseText){ errorMessage = `서버 오류 (${jqXHR.status || textStatus}): ${jqXHR.responseText}`; } //
             }
             // 3. 오류 메시지를 채팅 로그에 추가
-            appendMessage('error', errorMessage); // 오류 역할로 추가
+            appendMessage('error', errorMessage); //
         })
         .always(function() {
             // 로딩 종료
@@ -147,6 +174,8 @@ if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chat
             promptInput.focus(); // 입력창에 다시 포커스
             scrollToBottom(); // 최종 스크롤
         });
+        // --- $.ajax 끝 ---
+
     });
 
      // 입력창에서 Enter 키 입력 시 전송 (Shift+Enter는 줄바꿈)
@@ -157,6 +186,13 @@ if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chat
         }
     });
 
+    // 입력창 내용에 따라 높이 자동 조절 (선택적)
+    // promptInput.addEventListener('input', () => {
+    //     promptInput.style.height = 'auto';
+    //     promptInput.style.height = (promptInput.scrollHeight) + 'px';
+    // });
+
+
 } else {
     console.error("필수 HTML 요소(sendButton, chatLog, promptInput, chatLogContainer) 중 일부를 찾을 수 없습니다."); //
 }
@@ -164,4 +200,6 @@ if (sendButton && chatLog && promptInput && chatLogContainer) { // chatLog, chat
 // --- 페이지 로드 시 초기화 실행 ---
 document.addEventListener('DOMContentLoaded', () => { //
     initializeTheme(); // 테마 초기화 함수 호출
+    // 페이지 로드 시 초기 스크롤 (필요하다면)
+    // scrollToBottom();
 });

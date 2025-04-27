@@ -186,6 +186,13 @@ body.dark-mode .error-message {
     100% { transform: rotate(360deg); }
 }
 
+.response-duration {
+    font-size: 0.8em; /* 글자 크기 약간 작게 */
+    color: var(--label-color); /* 레이블 색상 사용 */
+    margin-left: 5px; /* 앞 내용과의 간격 */
+    opacity: 0.8; /* 약간 투명하게 (선택적) */
+    white-space: nowrap; /* 줄바꿈 방지 */
+}
 
 /* --- 입력 영역 스타일 --- */
 .input-area {
