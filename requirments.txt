@@ -1,0 +1,5 @@
+fastapi==0.115.12
+llama_cpp_python==0.3.8
+torch==2.4.1
+transformers==4.44.2
+uvicorn==0.34.2
