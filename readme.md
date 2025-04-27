@@ -10,7 +10,7 @@
 
 ---
 
-# 핵심 모델 gemma-3-4b-it-qat-q4_0-gguf
+# 핵심 모델 - 허깅페이스🤗 gemma-3-4b-it-qat-q4_0-gguf
 🔗 [**google/gemma-3-4b-it-qat-q4_0.gguf**](https://huggingface.co/google/gemma-3-4b-it-qat-q4_0-gguf) 
 
 ### * QAT (Quantization-Aware Training) 양자화 버전이란?
